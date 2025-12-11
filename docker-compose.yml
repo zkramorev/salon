@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: master_booking_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: master_booking
+      MYSQL_USER: booking_user
+      MYSQL_PASSWORD: booking_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/database:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    networks:
+      - booking_network
+
+  backend:
+    build: ./backend
+    container_name: master_booking_backend
+    restart: always
+    ports:
+      - "5001:5001"
+    environment:
+      DB_HOST: mysql
+      DB_USER: booking_user
+      DB_PASSWORD: booking_password
+      DB_NAME: master_booking
+      JWT_SECRET: your_jwt_secret_key_here
+      PORT: 5001
+    depends_on:
+      - mysql
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - booking_network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: master_booking_phpmyadmin
+    restart: always
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    networks:
+      - booking_network
+
+volumes:
+  mysql_data:
+
+networks:
+  booking_network:
+    driver: bridge
